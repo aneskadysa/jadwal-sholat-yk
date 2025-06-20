@@ -1,5 +1,7 @@
 # jadwal_sholat
 
+MY APK : https://github.com/aneskadysa/jadwal-sholat-yk/tree/main/APK
+
 A new Flutter project.
 
 ## Getting Started
