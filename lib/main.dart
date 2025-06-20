@@ -1,21 +1,28 @@
+// Import library yang diperlukan:
+// - async & convert: untuk operasi asinkron dan decoding JSON
+// - material.dart: komponen UI Material Design Flutter
+// - http: untuk request HTTP ke API jadwal sholat dan kalender Hijriyah
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
+// Fungsi utama untuk menjalankan aplikasi
 void main() {
   runApp(const MyApp());
 }
 
-// APP WRAPPER
+// APP WRAPPER:
+// Widget utama aplikasi yang mengatur tema, judul, dan halaman awal aplikasi
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Jadwal Sholat Yogyakarta',
+      title: 'Jadwal Sholat Yogyakarta', // Judul aplikasi
       theme: ThemeData(
+        // Tema aplikasi dengan warna utama teal dan font Roboto
         colorScheme: ColorScheme.light(
           primary: Colors.teal,
           secondary: Colors.grey,
@@ -23,13 +30,14 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Roboto',
         useMaterial3: true,
       ),
-      debugShowCheckedModeBanner: false,
-      home: const BottomNavWrapper(),
+      debugShowCheckedModeBanner: false, // Hilangkan banner debug
+      home: const BottomNavWrapper(), // Halaman awal aplikasi
     );
   }
 }
 
-// BOTTOM NAV WRAPPER
+// BOTTOM NAV WRAPPER:
+// Widget dengan bottom navigation bar untuk navigasi antar halaman (Sholat, Doa, Hijriyah)
 class BottomNavWrapper extends StatefulWidget {
   const BottomNavWrapper({super.key});
 
@@ -38,38 +46,52 @@ class BottomNavWrapper extends StatefulWidget {
 }
 
 class _BottomNavWrapperState extends State<BottomNavWrapper> {
-  int _selectedIndex = 0;
+  int _selectedIndex = 0; // Menyimpan index tab yang aktif
 
+  // Daftar halaman yang dihubungkan dengan bottom nav
   final List<Widget> _pages = [
-    JadwalSholatPage(),
-    const DoaPage(),
-    const HijriyahPage(),
+    JadwalSholatPage(),   // Halaman jadwal sholat
+    const DoaPage(),      // Halaman doa
+    const HijriyahPage(), // Halaman kalender Hijriyah
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Tampilkan halaman sesuai tab yang aktif
       body: _pages[_selectedIndex],
+      // BottomNavigationBar untuk berpindah antar halaman
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.teal,
         unselectedItemColor: Colors.grey,
         onTap: (index) {
           setState(() {
-            _selectedIndex = index;
+            _selectedIndex = index; // Update tab aktif
           });
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.access_time), label: 'Sholat'),
-          BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Doa'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Hijriyah'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.access_time),
+            label: 'Sholat',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.menu_book),
+            label: 'Doa',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Hijriyah',
+          ),
         ],
       ),
     );
   }
 }
 
-// JADWAL SHOLAT PAGE
+// JADWAL SHOLAT PAGE:
+// Halaman yang menampilkan jadwal sholat untuk Yogyakarta
+// Mengambil data dari API Aladhan dan menampilkan countdown menuju waktu sholat berikutnya
 class JadwalSholatPage extends StatefulWidget {
   JadwalSholatPage({super.key});
 
@@ -78,23 +100,28 @@ class JadwalSholatPage extends StatefulWidget {
 }
 
 class _JadwalSholatPageState extends State<JadwalSholatPage> {
+  // Menyimpan data waktu sholat (nama -> waktu HH:mm)
   Map<String, String> prayerTimes = {};
+  // Menyimpan nama sholat berikutnya
   String? nextPrayer;
+  // Menyimpan durasi countdown ke sholat berikutnya
   Duration? countdown;
+  // Timer untuk update countdown setiap detik
   Timer? timer;
 
   @override
   void initState() {
     super.initState();
-    fetchPrayerTimes();
+    fetchPrayerTimes(); // Ambil jadwal sholat saat pertama kali halaman dimuat
   }
 
   @override
   void dispose() {
-    timer?.cancel();
+    timer?.cancel(); // Hentikan timer saat halaman dihancurkan
     super.dispose();
   }
 
+  // Ambil data jadwal sholat dari API berdasarkan tanggal hari ini
   Future<void> fetchPrayerTimes() async {
     final now = DateTime.now();
     final url = Uri.parse(
@@ -105,6 +132,7 @@ class _JadwalSholatPageState extends State<JadwalSholatPage> {
         final data = json.decode(response.body);
         final timings = Map<String, String>.from(data['data']['timings']);
         setState(() {
+          // Atur data waktu sholat ke dalam map prayerTimes
           prayerTimes = {
             'Imsak': timings['Imsak']!,
             'Subuh': timings['Fajr']!,
@@ -116,13 +144,14 @@ class _JadwalSholatPageState extends State<JadwalSholatPage> {
             'Isya': timings['Isha']!,
           };
         });
-        startCountdown();
+        startCountdown(); // Mulai hitung mundur ke sholat berikutnya
       }
     } catch (e) {
       print('Error: $e');
     }
   }
 
+  // Hitung mundur ke sholat berikutnya, update setiap detik
   void startCountdown() {
     timer?.cancel();
     timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -130,6 +159,7 @@ class _JadwalSholatPageState extends State<JadwalSholatPage> {
       DateTime? nextTime;
       String? nextName;
 
+      // Cari waktu sholat berikutnya
       for (var entry in prayerTimes.entries) {
         final parts = entry.value.split(':');
         final time = DateTime(now.year, now.month, now.day,
@@ -141,6 +171,7 @@ class _JadwalSholatPageState extends State<JadwalSholatPage> {
         }
       }
 
+      // Kalau semua sudah lewat, set next ke Subuh esok hari
       if (nextTime == null) {
         final parts = prayerTimes['Subuh']!.split(':');
         nextTime = DateTime(now.year, now.month, now.day + 1,
@@ -148,6 +179,7 @@ class _JadwalSholatPageState extends State<JadwalSholatPage> {
         nextName = 'Subuh';
       }
 
+      // Update UI dengan sholat berikutnya dan countdown
       setState(() {
         nextPrayer = nextName;
         countdown = nextTime!.difference(now);
@@ -158,11 +190,15 @@ class _JadwalSholatPageState extends State<JadwalSholatPage> {
   @override
   Widget build(BuildContext context) {
     final primary = Theme.of(context).colorScheme.primary;
+
     return Scaffold(
+      // Kalau data belum ada, tampilkan loading
       body: prayerTimes.isEmpty
           ? const Center(child: CircularProgressIndicator())
+          // Kalau data ada, tampilkan jadwal dan countdown
           : Column(
               children: [
+                // Header dengan countdown
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
@@ -209,6 +245,7 @@ class _JadwalSholatPageState extends State<JadwalSholatPage> {
                     ],
                   ),
                 ),
+                // List jadwal sholat
                 Expanded(
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
@@ -271,6 +308,7 @@ class _JadwalSholatPageState extends State<JadwalSholatPage> {
     );
   }
 
+  // Mengembalikan icon sesuai nama sholat
   IconData getIcon(String prayerName) {
     switch (prayerName) {
       case 'Imsak':
@@ -295,6 +333,7 @@ class _JadwalSholatPageState extends State<JadwalSholatPage> {
   }
 }
 
+// DOA PAGE
 class DoaPage extends StatelessWidget {
   const DoaPage({super.key});
 
@@ -475,7 +514,10 @@ class DoaPage extends StatelessWidget {
   }
 }
 
-// HIJRIYAH PAGE
+// HIJRIYAH PAGE:
+// Halaman yang menampilkan kalender Hijriyah hari ini dalam bentuk grid
+// Mengambil data dari API Aladhan untuk konversi tanggal Masehi ke Hijriyah
+// Menampilkan highlight untuk hari ini, Jumat, dan akhir pekan
 class HijriyahPage extends StatefulWidget {
   const HijriyahPage({super.key});
 
@@ -485,6 +527,8 @@ class HijriyahPage extends StatefulWidget {
 
 class _HijriyahPageState extends State<HijriyahPage>
     with SingleTickerProviderStateMixin {
+  
+  // Fungsi untuk mengambil data tanggal Hijriyah dari API
   Future<Map<String, dynamic>> fetchHijriyahData() async {
     final now = DateTime.now();
     final url = Uri.parse(
@@ -503,20 +547,25 @@ class _HijriyahPageState extends State<HijriyahPage>
     final primary = Theme.of(context).colorScheme.primary;
 
     return Scaffold(
+      // FutureBuilder digunakan untuk menangani data asinkron dari API
       body: FutureBuilder<Map<String, dynamic>>(
         future: fetchHijriyahData(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
+            // Tampilkan loading saat data belum tersedia
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
+            // Tampilkan pesan error jika gagal ambil data
             return const Center(child: Text('Gagal memuat kalender'));
           } else {
+            // Data berhasil didapat, tampilkan kalender
             final hijri = snapshot.data!;
             final now = DateTime.now();
             final todayHijriDay = hijri['day'];
 
             return Column(
               children: [
+                // HEADER KALENDER
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
@@ -533,6 +582,7 @@ class _HijriyahPageState extends State<HijriyahPage>
                   ),
                   child: Column(
                     children: [
+                      // Tanggal Hijriyah
                       Text(
                         '${hijri['weekday']['en']}, ${hijri['day']} ${hijri['month']['en']} ${hijri['year']} H',
                         style: const TextStyle(
@@ -542,6 +592,7 @@ class _HijriyahPageState extends State<HijriyahPage>
                         ),
                       ),
                       const SizedBox(height: 4),
+                      // Tanggal Masehi
                       Text(
                         '${_monthName(now.month)} ${now.day}, ${now.year}',
                         style: const TextStyle(
@@ -553,8 +604,9 @@ class _HijriyahPageState extends State<HijriyahPage>
                   ),
                 ),
                 const SizedBox(height: 8),
-                _buildDayHeader(),
+                _buildDayHeader(), // Header nama hari (Sun, Mon, dst)
                 Expanded(
+                  // GRID KALENDER: 7 kolom, 30 hari
                   child: GridView.builder(
                     padding: const EdgeInsets.all(12),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -572,6 +624,7 @@ class _HijriyahPageState extends State<HijriyahPage>
                       final isWeekend = dayName == 'Sat' || dayName == 'Sun';
 
                       return GestureDetector(
+                        // Saat ditekan, tampilkan detail hari di bottom sheet
                         onTap: () {
                           showModalBottomSheet(
                             context: context,
@@ -608,6 +661,7 @@ class _HijriyahPageState extends State<HijriyahPage>
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
+                                // Tampilkan angka hari
                                 FittedBox(
                                   child: Text(
                                     '$day',
@@ -623,6 +677,7 @@ class _HijriyahPageState extends State<HijriyahPage>
                                   ),
                                 ),
                                 const SizedBox(height: 2),
+                                // Tampilkan nama hari
                                 FittedBox(
                                   child: Text(
                                     dayName,
@@ -637,6 +692,7 @@ class _HijriyahPageState extends State<HijriyahPage>
                                   ),
                                 ),
                                 const SizedBox(height: 1),
+                                // Tampilkan pasaran Jawa
                                 FittedBox(
                                   child: Text(
                                     _pasaran(day),
@@ -664,6 +720,7 @@ class _HijriyahPageState extends State<HijriyahPage>
     );
   }
 
+  // BOTTOM SHEET DETAIL HARI
   Widget _buildDetailSheet(int day, String dayName) {
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -702,6 +759,7 @@ class _HijriyahPageState extends State<HijriyahPage>
     );
   }
 
+  // HEADER HARI (Sun, Mon, dst)
   static Widget _buildDayHeader() {
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return Padding(
@@ -724,6 +782,7 @@ class _HijriyahPageState extends State<HijriyahPage>
     );
   }
 
+  // Fungsi utilitas untuk nama bulan Masehi
   static String _monthName(int month) {
     const months = [
       '',
@@ -743,11 +802,13 @@ class _HijriyahPageState extends State<HijriyahPage>
     return months[month];
   }
 
+  // Fungsi utilitas untuk pasaran Jawa
   static String _pasaran(int day) {
     const pasaran = ['Legi', 'Pahing', 'Pon', 'Wage', 'Kliwon'];
     return pasaran[day % 5];
   }
 
+  // Fungsi utilitas untuk nama hari (Sun, Mon, dst)
   static String _dayName(int index) {
     const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     return names[index % 7];
