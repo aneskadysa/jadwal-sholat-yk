@@ -1,6 +1,10 @@
 # jadwal_sholat
 
+MY APK : https://github.com/aneskadysa/jadwal-sholat-yk/tree/main/APK
+
 A new Flutter project.
+
+This project is a simple Android application using Flutter to display data from the internet. The application shows prayer schedules, daily prayers, and the Hijri calendar with data from an API. Everything has been checked, there are no errors, and it runs successfully on the emulator.
 
 ## Getting Started
 
